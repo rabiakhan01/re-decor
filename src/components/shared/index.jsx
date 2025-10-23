@@ -1,2 +1,8 @@
 export { default as Navbar } from './Navbar';
 export { default as Footer } from './Footer';
+export { default as ListWithIcon } from './ListWithIcon';
+export { default as Button } from './Button';
+export { default as InputField } from './MuiTextField';
+export { default as CustomModal } from './CustomModal';
+export { default as OTPInput } from './OTP';
+export { default as Spinner } from './Spinner'

@@ -2,11 +2,13 @@ import React, { useState } from "react"
 import images from "../../assets/images/images";
 import { Checkbox } from "@mui/material";
 import Button from "../../components/shared/Button";
-import { blueColor, grayColor, purpleColor, textPrimaryColor } from "../../utils/styles/colors";
+import { blueColor, purpleColor } from "../../utils/styles/colors";
 import MuiTextField from "../../components/shared/MuiTextField";
-import { Button as MuiButton } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { isUserDetailEmpty, removeError } from "../../helpers/GlobalMethods";
+import axios from "../../redux/https";
+import { endPoints } from "../../redux/constants";
+import Toast, { showToast } from "../../components/Toast";
 
 const SignupPage = () => {
 
@@ -19,6 +21,7 @@ const SignupPage = () => {
     });
     const [visiblePassword, setVisiblePassword] = useState();
     const [isEmpty, setIsEmpty] = useState({});
+    const [loading, setLoading] = useState(false)
 
     //handel the onchange for the email
     const handelEmailChange = (event) => {
@@ -59,11 +62,28 @@ const SignupPage = () => {
         setIsEmpty(empty)
     }
     //submit the data after click
-    const handelClick = (event) => {
+    const handleSave = (event) => {
         event.preventDefault();
         const validations = isUserDetailEmpty(signupUser);
         if (!validations) {
-            console.log("success")
+            const payload = {
+                username: signupUser?.username,
+                email: signupUser?.email,
+                password: signupUser?.password
+            }
+            setLoading(true)
+            axios.post(endPoints?.singup, payload).then((res) => {
+                setLoading(false)
+                navigate('/verify-email', {
+                    state: {
+                        from: 'signup',
+                        email: signupUser?.email
+                    }
+                })
+            }).then((err) => {
+                showToast('error', err?.response?.data?.message ? err?.response?.data?.message : 'Something wents wrong')
+                setLoading(false)
+            })
         }
         else {
             setIsEmpty(validations)
@@ -75,11 +95,11 @@ const SignupPage = () => {
     }
 
     return (
-        <div className="flex w-full h-lvh justify-center items-center">
+        <div className="flex relative w-full h-lvh justify-center items-center">
             <img src={images.cover_photo} alt="" className="object-cover h-full w-full" />
-            <div className="absolute w-[90%] sm:w-[80%] md:w-[60%] xl:w-[40%] flex flex-col gap-3 justify-center items-center px-5 sm:px-12 py-4 bg-white rounded-md bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-80 border border-gray-100">
+            <div className="absolute w-[90%] max-h-[95%] sm:w-[80%] md:w-[28rem] flex flex-col overflow-auto gap-3 justify-center items-center px-5 sm:px-12 py-5 bg-white rounded-md bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-80 border border-gray-100">
                 <div className="w-full">
-                    <div className="w-8 h-8 md:w-10 md:h-10 cursor-pointer">
+                    <div className="w-8 h-8 md:w-10 md:h-10 cursor-pointer mt-20" onClick={() => { navigate('/') }}>
                         <img src={images.logo} alt="" className="object-cover" />
                     </div>
                     <div>
@@ -137,8 +157,9 @@ const SignupPage = () => {
                         variant="contained"
                         gradiant={true}
                         rounded="rounded-lg"
+                        loading={loading}
                         onChange={handelChange}
-                        onClick={handelClick}
+                        onClick={handleSave}
                     />
                     <Button
                         name="Already Have An Account"
@@ -146,18 +167,11 @@ const SignupPage = () => {
                         gradiant={true}
                         rounded="rounded-lg"
                         onChange={handelChange}
-                        onClick={handelClick}
+                        onClick={() => { navigate('/login') }}
                     />
                 </form>
-                <div className="relative flex justify-center items-center w-full">
-                    <MuiButton
-                        variant="outlined"
-                        fullWidth
-                        endIcon={<img src={images.google} alt="" className="h-5 w-5" />}
-                        sx={{ borderRadius: 2, height: 40, borderColor: grayColor, color: textPrimaryColor, textTransform: 'capitalize', ":hover": { borderColor: purpleColor, bgcolor: 'transparent' }, fontSize: { xs: 12, sm: 14, lg: 16 } }}
-                    >Signup with google</MuiButton>
-                </div>
             </div>
+            <Toast />
         </div>
     )
 }

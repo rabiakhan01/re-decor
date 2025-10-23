@@ -1,25 +1,35 @@
+// Library Imports
 import React, { useState } from "react"
-import images from "../../assets/images/images";
-import { Checkbox, } from "@mui/material";
-import Button from "../../components/shared/Button";
-import { blueColor, grayColor, purpleColor, textPrimaryColor } from "../../utils/styles/colors";
-import MuiTextField from "../../components/shared/MuiTextField";
-import { Button as MuiButton } from "@mui/material";
+import { Checkbox } from "@mui/material";
+import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
+
+// Local Imports
+import images from "../../assets/images/images";
+import Button from "../../components/shared/Button";
+import { blueColor, purpleColor } from "../../utils/styles/colors";
+import MuiTextField from "../../components/shared/MuiTextField";
 import { isUserDetailEmpty, removeError } from "../../helpers/GlobalMethods";
+import { loginUser } from "../../redux/actions/userActions";
+import Toast, { showToast } from "../../components/Toast";
+import axios from "../../redux/https";
+import { endPoints } from "../../redux/constants";
 
 const LoginPage = () => {
     const navigate = useNavigate();
-    const [loginUser, setLoginUser] = useState({
+    const dispatch = useDispatch();
+    const [loginUserData, setLoginUserData] = useState({
         email: '',
         password: '',
     });
     const [visiblePassword, setVisiblePassword] = useState();
     const [isEmpty, setIsEmpty] = useState();
+    const [loading, setLoading] = useState(false);
 
+    /****************** Functions ******************/
     //handel the onchange for the email
     const handelEmailChange = (event) => {
-        setLoginUser(() => ({ ...loginUser, email: event.target.value }))
+        setLoginUserData(() => ({ ...loginUserData, email: event.target.value }))
         let empty = { ...isEmpty };
         empty = {
             ...isEmpty,
@@ -30,12 +40,12 @@ const LoginPage = () => {
     }
 
     const handelChange = (event) => {
-        setLoginUser(() => ({
-            ...loginUser,
+        setLoginUserData(() => ({
+            ...loginUserData,
             [event.target.name]: event.target.value
         }))
         if (isEmpty) {
-            const empty = removeError(event.target.name, loginUser, isEmpty);
+            const empty = removeError(event.target.name, loginUserData, isEmpty);
             setIsEmpty(empty);
         }
     }
@@ -44,11 +54,25 @@ const LoginPage = () => {
         setVisiblePassword(!visiblePassword)
     }
 
-    const handelClick = (event) => {
+    const handleLoginClick = (event) => {
         event.preventDefault();
-        const validations = isUserDetailEmpty(loginUser);
+        const validations = isUserDetailEmpty(loginUserData);
         if (!validations) {
-            console.log("success")
+            const payload = {
+                email: loginUserData?.email,
+                password: loginUserData?.password
+            }
+            setLoading(true)
+            axios?.post(endPoints?.login, payload).then((res) => {
+                console.log(res)
+                const currentUser = res?.data?.data
+                dispatch(loginUser(currentUser))
+                setLoading(false)
+                navigate('/')
+            }).catch((err) => {
+                setLoading(false)
+                showToast('error', err?.response?.data?.message ? err?.response?.data?.message : 'Something wents wrong');
+            })
         }
         else {
             setIsEmpty(validations)
@@ -57,9 +81,9 @@ const LoginPage = () => {
 
     return (
         <div className="flex w-full h-lvh justify-center items-center">
-            <img src={images.cover_photo} alt="" className="object-cover h-full w-full" />
-            <div className="absolute w-[90%] sm:w-[80%] md:w-[60%] xl:w-[35%] flex flex-col gap-4 justify-center items-center px-5 sm:px-12 py-6 bg-white rounded-md bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-80 border border-gray-100">
-                <div className="w-full flex flex-col gap-2">
+            <img src={images.cover_photo} alt="cover-page" className="object-cover h-full w-full" />
+            <div className="absolute min-h-[80%] w-[90%] sm:w-[80%] md:w-[27rem] flex flex-col gap-4 justify-center overflow-auto items-center px-5 sm:px-12 py-6 bg-white rounded-md bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-80 border border-gray-100">
+                <div className="w-full flex flex-col gap-2" onClick={() => { navigate('/') }}>
                     <div className="w-8 h-8 md:w-10 md:h-10 cursor-pointer">
                         <img src={images.logo} alt="" className="object-cover" />
                     </div>
@@ -73,7 +97,7 @@ const LoginPage = () => {
                         name="email"
                         placeholder="Email"
                         type="email"
-                        value={loginUser.email}
+                        value={loginUserData.email}
                         onChange={handelEmailChange}
                         error={isEmpty?.email ? true : isEmpty?.isEmailNotValid ? true : false}
                         helperText={isEmpty?.email ? 'Email is required' : isEmpty?.isEmailNotValid ? 'Email is invalid' : ''}
@@ -81,8 +105,8 @@ const LoginPage = () => {
                     <MuiTextField
                         name="password"
                         placeholder="Password"
-                        type="password"
-                        value={loginUser.password}
+                        type={visiblePassword ? 'text' : 'password'}
+                        value={loginUserData.password}
                         onChange={handelChange}
                         error={isEmpty?.password ? true : false}
                         helperText={isEmpty?.password ? 'Password is required' : ''}
@@ -93,7 +117,7 @@ const LoginPage = () => {
                             <Checkbox size="small" sx={{ color: blueColor, '&.Mui-checked': { color: purpleColor, }, }} onClick={showPassword} />
                             <label className="text-xs sm:text-sm ">Show Password</label>
                         </div>
-                        <p className="text-purpleColor text-xs sm:text-sm font-medium cursor-pointer">Forget Password</p>
+                        <p className="text-purpleColor text-xs sm:text-sm font-medium cursor-pointer" onClick={() => { navigate('/forget-password') }}>Forget Password</p>
 
                     </div>
                     <Button
@@ -101,7 +125,8 @@ const LoginPage = () => {
                         variant="contained"
                         gradiant={true}
                         rounded="rounded-lg"
-                        onClick={handelClick}
+                        onClick={handleLoginClick}
+                        loading={loading}
                     />
                     <Button
                         type="button"
@@ -109,19 +134,11 @@ const LoginPage = () => {
                         variant="outlined"
                         gradiant={true}
                         rounded="rounded-lg"
-                        onClick={handelClick}
+                        onClick={() => { navigate('/signup') }}
                     />
                 </form>
-                <div className="relative flex justify-center items-center w-full">
-                    <MuiButton
-                        variant="outlined"
-                        fullWidth
-                        endIcon={<img src={images.google} className="h-5 w-5" />}
-                        sx={{ borderRadius: 2, height: 43, borderColor: grayColor, color: textPrimaryColor, textTransform: 'capitalize', ":hover": { borderColor: purpleColor, bgcolor: 'transparent' }, fontSize: { xs: 12, sm: 14, lg: 16 } }}
-                    >Continue with google</MuiButton>
-                </div>
             </div>
-
+            <Toast />
         </div>
     )
 }
